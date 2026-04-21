@@ -1,0 +1,4 @@
+interface:
+  display_name: "NotebookLM Zotero Import"
+  short_description: "Import Zotero files into NotebookLM"
+  default_prompt: "Use $notebooklm-zotero-import to find Zotero items by collection and optional title match, auto-login to nlm when needed, upload default PDF or requested attachment formats into NotebookLM, shard at 50 files per notebook, and skip already uploaded files."
