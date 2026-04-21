@@ -1,33 +1,37 @@
 # Zotero to NotebookLM
 
-A Codex skill for importing local Zotero attachments into NotebookLM through `notebooklm-mcp-cli` (`nlm`).
+An independent Codex skill for moving local Zotero attachments into NotebookLM through `nlm`.
 
-It is designed for workflows like:
-- find a paper in a Zotero collection by title and upload its PDF into a NotebookLM notebook
-- import all supported files from a Zotero collection into NotebookLM
-- reuse existing notebooks, skip duplicate uploads, and shard at 50 sources per notebook
-- auto-run `nlm login` when the NotebookLM session is missing or expired
+This repository documents the skill itself. It does not bundle or reproduce the upstream `notebooklm-mcp-cli` project. Install that dependency separately and refer to its repository for its own documentation, license, and implementation details.
 
-## What It Supports
+## What This Skill Does
 
-The importer reads local attachments from Zotero and only accepts NotebookLM-supported local upload formats.
+- reads local Zotero metadata from `zotero.sqlite`
+- resolves attachment files from the Zotero storage directory
+- filters items by collection, optional title match, and allowed file extensions
+- checks NotebookLM login state before every run
+- creates or reuses NotebookLM notebooks
+- skips files that are already present in the target notebook
+- splits uploads into multiple notebooks when a notebook would exceed 50 sources
 
-Supported local extensions currently include:
+## Supported Local Upload Formats
+
+The skill only allows file extensions that NotebookLM currently supports for local upload.
+
 - Documents: `pdf`, `docx`, `txt`, `md`, `csv`, `pptx`, `epub`
 - Images: `avif`, `bmp`, `gif`, `heic`, `heif`, `ico`, `jp2`, `jpe`, `jpeg`, `jpg`, `png`, `tif`, `tiff`, `webp`
-- Audio / media: `3g2`, `3gp`, `aac`, `aif`, `aifc`, `aiff`, `amr`, `au`, `avi`, `cda`, `m4a`, `mid`, `mp3`, `mp4`, `mpeg`, `ogg`, `opus`, `ra`, `ram`, `snd`, `wav`, `wma`
+- Audio and media: `3g2`, `3gp`, `aac`, `aif`, `aifc`, `aiff`, `amr`, `au`, `avi`, `cda`, `m4a`, `mid`, `mp3`, `mp4`, `mpeg`, `ogg`, `opus`, `ra`, `ram`, `snd`, `wav`, `wma`
 
-Unsupported extensions such as `mlx` are rejected locally before upload.
+Unsupported extensions are rejected locally before upload.
 
 ## Requirements
 
-- Zotero local data, typically:
-  - `~/Zotero/zotero.sqlite`
-  - `~/Zotero/storage`
+- local Zotero data
 - `uv`
 - `notebooklm-mcp-cli`
+- a Chromium-based browser available for `nlm login` when authentication is needed
 
-Install `nlm` if needed:
+Install the dependency:
 
 ```bash
 uv tool install notebooklm-mcp-cli
@@ -35,20 +39,14 @@ uv tool install notebooklm-mcp-cli
 
 ## Install the Skill
 
-Clone or copy this repository into your Codex skills directory:
+Clone this repository into your Codex skills directory:
 
 ```bash
 git clone https://github.com/HaoboYang0327/Zotero-to-Notebooklm.git \
   "${CODEX_HOME:-$HOME/.codex}/skills/notebooklm-zotero-import"
 ```
 
-Or copy these files manually into:
-
-```bash
-${CODEX_HOME:-$HOME/.codex}/skills/notebooklm-zotero-import
-```
-
-The skill entrypoint is:
+The main entrypoint is:
 
 ```bash
 scripts/import_zotero_to_notebooklm.py
@@ -56,49 +54,57 @@ scripts/import_zotero_to_notebooklm.py
 
 ## Usage
 
-Import all PDFs from a Zotero collection:
+Import all default-PDF attachments from a Zotero collection:
 
 ```bash
 uv run ~/.codex/skills/notebooklm-zotero-import/scripts/import_zotero_to_notebooklm.py \
-  --collection "Limit Order Book" \
-  --notebook-base "LOB_TTT"
+  --collection "<ZOTERO_COLLECTION>" \
+  --notebook-base "<NOTEBOOK_NAME>"
 ```
 
-Import a single paper by title:
+Import only attachments whose Zotero item title matches a phrase:
 
 ```bash
 uv run ~/.codex/skills/notebooklm-zotero-import/scripts/import_zotero_to_notebooklm.py \
-  --collection "Limit Order Book" \
-  --title-match "LiT: limit order book transformer" \
-  --notebook-base "LOB_TTT_single"
+  --collection "<ZOTERO_COLLECTION>" \
+  --title-match "<TITLE_SUBSTRING>" \
+  --notebook-base "<NOTEBOOK_NAME>"
 ```
 
-Import selected supported formats:
+Import selected supported extensions:
 
 ```bash
 uv run ~/.codex/skills/notebooklm-zotero-import/scripts/import_zotero_to_notebooklm.py \
-  --collection "SGN.300" \
-  --title-match "Homework_4" \
+  --collection "<ZOTERO_COLLECTION>" \
+  --title-match "<TITLE_SUBSTRING>" \
   --extension pdf \
   --extension md \
-  --notebook-base "SGN300_hw4"
+  --notebook-base "<NOTEBOOK_NAME>"
 ```
 
-## Behavior
+Override Zotero paths or the NotebookLM profile when needed:
 
-- Runs `nlm login --check` before every import
-- Launches `nlm login` automatically if the session is invalid
-- Searches Zotero collections recursively
-- Filters items by normalized title substring when `--title-match` is provided
-- Reuses an existing same-name notebook when it is unique
-- Skips files already present in the target notebook
-- Splits imports into notebook shards with a default cap of 50 sources per notebook
+```bash
+uv run ~/.codex/skills/notebooklm-zotero-import/scripts/import_zotero_to_notebooklm.py \
+  --collection "<ZOTERO_COLLECTION>" \
+  --notebook-base "<NOTEBOOK_NAME>" \
+  --profile "<NLM_PROFILE>" \
+  --zotero-db "<PATH_TO_ZOTERO_SQLITE>" \
+  --zotero-storage "<PATH_TO_ZOTERO_STORAGE>"
+```
 
-## Repository Contents
+## Authentication Behavior
+
+Each run starts with `nlm login --check`.
+
+- If the session is valid, the skill continues without opening a login flow.
+- If the session is missing or expired, the current implementation launches `nlm login` automatically.
+
+## Repository Layout
 
 - `SKILL.md`: Codex skill instructions
-- `agents/openai.yaml`: Codex skill interface metadata
+- `agents/openai.yaml`: skill interface metadata
 - `scripts/import_zotero_to_notebooklm.py`: importer implementation
-- `references/workflow.md`: workflow reference
-- `README.md`: English usage guide
-- `README.zh-CN.md`: Chinese usage guide
+- `references/workflow.md`: workflow notes and constraints
+- `README.md`: English overview
+- `README.zh-CN.md`: Chinese overview
