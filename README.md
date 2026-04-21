@@ -4,6 +4,9 @@ An independent Codex skill for moving local Zotero attachments into NotebookLM t
 
 This repository documents the skill itself. It does not bundle or reproduce the upstream `notebooklm-mcp-cli` project. Install that dependency separately and refer to its repository for its own documentation, license, and implementation details.
 
+Upstream dependency repository:
+- `notebooklm-mcp-cli`: https://github.com/jacob-bd/notebooklm-mcp-cli
+
 ## What This Skill Does
 
 - reads local Zotero metadata from `zotero.sqlite`

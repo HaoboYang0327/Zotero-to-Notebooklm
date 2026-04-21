@@ -4,6 +4,9 @@
 
 这个仓库只描述这个 skill 本身，不打包也不复述上游 `notebooklm-mcp-cli` 项目的实现或文档内容。`notebooklm-mcp-cli` 需要单独安装；它自身的文档、许可证和实现细节请以其上游仓库为准。
 
+上游依赖仓库：
+- `notebooklm-mcp-cli`：https://github.com/jacob-bd/notebooklm-mcp-cli
+
 ## 这个 Skill 做什么
 
 - 从 `zotero.sqlite` 读取本地 Zotero 元数据
